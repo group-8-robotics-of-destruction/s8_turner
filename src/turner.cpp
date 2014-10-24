@@ -130,16 +130,7 @@ private:
         }
     }
 
-<<<<<<< HEAD
-    int transform_rotation(int z) {
-        if(z < 0) {
-            return z + 360;
-        }
-
-        return z;
-    }
-
-    int calculate_speed(int abs_diff){
+    double calculate_speed(int abs_diff){
         // Test and eventually change 30 to an angular parameter and generalise formula
         if (abs_diff <= 30){
             return (0.5 + 0.017*abs_diff) * speed;
@@ -149,9 +140,8 @@ private:
         }
     }
 
-=======
->>>>>>> 5e3e6314e0290bd87f71e4e4478cae5f36aa75a3
     void publish(double w) {
+        ROS_INFO("w: %lf", w);
         geometry_msgs::Twist twist;
         twist.angular.z = w;
         twist_publisher.publish(twist);
