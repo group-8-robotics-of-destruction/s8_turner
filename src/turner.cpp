@@ -66,10 +66,10 @@ private:
     }
 
     void imu_callback(const s8_msgs::Orientation::ConstPtr & orientation) {
-        int z = orientation->z;
+        int z = orientation->absolute_z;
 
         if(!turning) {
-            start_z = transform_rotation(z);
+            start_z = z;
         }
 
         if(first) {
@@ -77,25 +77,14 @@ private:
             first = false;
         }
 
-        latest_z = transform_rotation(z);
-
-        if(start_z > 250) {
-            if(latest_z < 100) {
-                latest_z += 360;
-            }
-        }
-
-        if(start_z < 110) {
-            if(latest_z > 250) {
-                latest_z -= 360;
-            }
-        }
+        latest_z = z;
 
         if(turning) {
             update();
         }
     }
 
+<<<<<<< HEAD
     int transform_rotation(int z) {
         if(z < 0) {
             return z + 360;
@@ -114,6 +103,8 @@ private:
         }
     }
 
+=======
+>>>>>>> 5e3e6314e0290bd87f71e4e4478cae5f36aa75a3
     void publish(double w) {
         geometry_msgs::Twist twist;
         twist.angular.z = w;
