@@ -62,8 +62,15 @@ private:
             publish(0);
             return;
         }
-
-        publish((int)direction * speed);
+        // Test and eventually change 30 to an angular parameter and generalise formula
+        double temp_speed;
+        if (std::abs(diff) <= 30){
+            temp_speed = (0.5 + 0.017*std::abs(diff)) * speed;
+        }
+        else if (std::abs(diff) > 30){
+            temp_speed = (1.25 - 0.0083*std::abs(diff)) * speed;
+        }
+        publish(temp_speed);
     }
 
     void imu_callback(const s8_msgs::Orientation::ConstPtr & orientation) {
