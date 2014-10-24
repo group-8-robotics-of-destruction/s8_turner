@@ -10,7 +10,7 @@
 
 #define TOPIC_ORIENTATION       "/s8/orientation"
 #define TOPIC_TWIST             "/s8/twist"
-#define ACTION_TURN             "turn"
+#define ACTION_TURN             "/s8/turn"
 
 #define PARAM_NAME_SPEED        "speed"
 #define PARAM_DEFAULT_SPEED     1.5
@@ -60,7 +60,7 @@ private:
     void action_execute_turn_callback(const s8_turner::TurnGoalConstPtr & goal) {
         turning = true;
         start_z = latest_z;
-        desired_z = start_z + goal->degrees;
+        desired_z = (start_z + goal->degrees) % 360;
 
         const int timeout = 10; // 10 seconds.
         const int rate_hz = 10;
@@ -69,7 +69,7 @@ private:
 
         int ticks = 0;
 
-        ROS_INFO("Turn action started. Current z: %d, desired turn: %d, desired z: ", start_z, goal->degrees, desired_z);
+        ROS_INFO("Turn action started. Current z: %d, desired turn: %d, desired z: %d", start_z, goal->degrees, desired_z);
 
         while(turning && ticks <= timeout * rate_hz) {
             rate.sleep();
