@@ -1,16 +1,19 @@
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
+#include <actionlib/client/simple_action_client.h>
 
 #include <s8_msgs/Orientation.h>
 #include <geometry_msgs/Twist.h>
 #include <s8_common_node/Node.h>
 #include <s8_turner/TurnAction.h>
+#include <s8_motor_controller/StopAction.h>
 
 #define NODE_NAME               "s8_turner_node"
 
 #define TOPIC_ORIENTATION       "/s8/orientation"
 #define TOPIC_TWIST             "/s8/twist"
 #define ACTION_TURN             "/s8/turn"
+#define ACTION_STOP             "/s8_motor_controller/stop"
 
 #define PARAM_NAME_SPEED        "speed"
 #define PARAM_DEFAULT_SPEED     1.5
@@ -26,6 +29,7 @@ private:
     ros::Subscriber imu_subscriber;
     ros::Publisher twist_publisher;
     actionlib::SimpleActionServer<s8_turner::TurnAction> turn_action;
+    actionlib::SimpleActionClient<s8_motor_controller::StopAction> stop_action;
 
     int start_z;
     int latest_z;
@@ -35,25 +39,16 @@ private:
     Direction direction;
 
 public:
-    Turner() : turning(false), turn_action(nh, ACTION_TURN, boost::bind(&Turner::action_execute_turn_callback, this, _1), false) {
+    Turner() : turning(false), stop_action(ACTION_STOP, true), turn_action(nh, ACTION_TURN, boost::bind(&Turner::action_execute_turn_callback, this, _1), false) {
         init_params();
         print_params();
         imu_subscriber = nh.subscribe<s8_msgs::Orientation>(TOPIC_ORIENTATION, 0, &Turner::imu_callback, this);
         twist_publisher = nh.advertise<geometry_msgs::Twist>(TOPIC_TWIST, 0);
         turn_action.start();
-    }
 
-    void turn(Direction dir) {
-        if(turning) {
-            ROS_WARN("Already turning. Ignoring incoming turn command.");
-            return;
-        }
-
-        ROS_INFO("Turning %s", dir == Direction::LEFT ? "left" : "right");
-
-        direction = dir;
-
-        turning = true;
+        ROS_INFO("Waiting for stop action server...");
+        stop_action.waitForServer();
+        ROS_INFO("Connected to stop action server!");
     }
 
 private:
@@ -98,9 +93,13 @@ private:
     }
 
     void update() {
+        if(!turning) {
+            return;
+        }
+
         int diff = (start_z - latest_z);
 
-        ROS_INFO("start_z: %d, latest_z: %d, diff: %d", start_z, latest_z, diff);
+        ROS_INFO("start_z: %d, latest_z: %d, diff: %d, desired_z: %d", start_z, latest_z, diff, desired_z);
 
         const int treshold_range = 5;
 
@@ -110,10 +109,28 @@ private:
         if(latest_z >= low_treshold && latest_z <= high_treshold) {
             turning = false;
             ROS_INFO("Done turning.");
-            publish(0);
+            stop();
             return;
         }
         publish(calculate_speed(std::abs(diff)));
+	    //publish(direction * speed);
+    }
+
+    void stop() {
+        ROS_INFO("Stopping...");
+
+        s8_motor_controller::StopGoal goal;
+        goal.stop = true;
+        stop_action.sendGoal(goal);
+
+        bool finised_before_timeout = stop_action.waitForResult(ros::Duration(30.0));
+
+        if(finised_before_timeout) {
+            actionlib::SimpleClientGoalState state = stop_action.getState();
+            ROS_INFO("Stop action finished. %s", state.toString().c_str());
+        } else {
+            ROS_WARN("Stop action timed out.");
+        }
     }
 
     void imu_callback(const s8_msgs::Orientation::ConstPtr & orientation) {
