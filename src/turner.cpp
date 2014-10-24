@@ -1,12 +1,16 @@
 #include <ros/ros.h>
+#include <actionlib/server/simple_action_server.h>
+
 #include <s8_msgs/Orientation.h>
 #include <geometry_msgs/Twist.h>
 #include <s8_common_node/Node.h>
+#include <s8_turner/TurnAction.h>
 
 #define NODE_NAME               "s8_turner_node"
 
 #define TOPIC_ORIENTATION       "/s8/orientation"
 #define TOPIC_TWIST             "/s8/twist"
+#define ACTION_TURN             "turn"
 
 #define PARAM_NAME_SPEED        "speed"
 #define PARAM_DEFAULT_SPEED     1.5
@@ -19,22 +23,24 @@ public:
     };
 
 private:
-
     ros::Subscriber imu_subscriber;
     ros::Publisher twist_publisher;
+    actionlib::SimpleActionServer<s8_turner::TurnAction> turn_action;
+
     int start_z;
     int latest_z;
+    int desired_z;
     bool turning;
     double speed;
     Direction direction;
-    bool first;
 
 public:
-    Turner() : turning(false), first(true) {
+    Turner() : turning(false), turn_action(nh, ACTION_TURN, boost::bind(&Turner::action_execute_turn_callback, this, _1), false) {
         init_params();
         print_params();
         imu_subscriber = nh.subscribe<s8_msgs::Orientation>(TOPIC_ORIENTATION, 0, &Turner::imu_callback, this);
         twist_publisher = nh.advertise<geometry_msgs::Twist>(TOPIC_TWIST, 0);
+        turn_action.start();
     }
 
     void turn(Direction dir) {
@@ -51,12 +57,49 @@ public:
     }
 
 private:
+    void action_execute_turn_callback(const s8_turner::TurnGoalConstPtr & goal) {
+        turning = true;
+        start_z = latest_z;
+        desired_z = start_z + goal->degrees;
+
+        const int timeout = 10; // 10 seconds.
+        const int rate_hz = 10;
+
+        ros::Rate rate(rate_hz);
+
+        int ticks = 0;
+
+        ROS_INFO("Turn action started. Current z: %d, desired turn: %d, desired z: ", start_z, goal->degrees, desired_z);
+
+        while(turning && ticks <= timeout * rate_hz) {
+            rate.sleep();
+            ticks++;
+        }
+
+        if(ticks >= timeout * rate_hz) {
+            ROS_WARN("Unable to turn. Turn action failed. Desired z: %d, actual z: %d, error: %d", desired_z, latest_z, desired_z - latest_z);
+            s8_turner::TurnResult turn_action_result;
+            turn_action_result.degrees = latest_z - start_z;
+            turn_action.setAborted(turn_action_result);
+        } else {
+            s8_turner::TurnResult turn_action_result;
+            turn_action_result.degrees = latest_z - start_z;
+            turn_action.setSucceeded(turn_action_result);
+            ROS_INFO("Turn action succeeded. Desired z: %d, actual z: %d, Overshoot: %d", desired_z, latest_z, desired_z - latest_z);
+        }
+    }
+
     void update() {
         int diff = (start_z - latest_z);
 
         ROS_INFO("start_z: %d, latest_z: %d, diff: %d", start_z, latest_z, diff);
 
-        if(std::abs(diff) >= 85 && std::abs(diff) <= 95) {
+        const int treshold_range = 5;
+
+        int low_treshold = desired_z - treshold_range;
+        int high_treshold = desired_z + treshold_range;
+
+        if(std::abs(diff) >= low_treshold && std::abs(diff) <= high_treshold) {
             turning = false;
             ROS_INFO("Done turning.");
             publish(0);
@@ -71,11 +114,6 @@ private:
 
         if(!turning) {
             start_z = transform_rotation(z);
-        }
-
-        if(first) {
-            turn(Turner::Direction::LEFT);
-            first = false;
         }
 
         latest_z = transform_rotation(z);
