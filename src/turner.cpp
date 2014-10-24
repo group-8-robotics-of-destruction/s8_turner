@@ -113,8 +113,7 @@ private:
             publish(0);
             return;
         }
-
-        publish((int)direction * speed);
+        publish(calculate_speed(std::abs(diff)));
     }
 
     void imu_callback(const s8_msgs::Orientation::ConstPtr & orientation) {
@@ -131,6 +130,27 @@ private:
         }
     }
 
+<<<<<<< HEAD
+    int transform_rotation(int z) {
+        if(z < 0) {
+            return z + 360;
+        }
+
+        return z;
+    }
+
+    int calculate_speed(int abs_diff){
+        // Test and eventually change 30 to an angular parameter and generalise formula
+        if (abs_diff <= 30){
+            return (0.5 + 0.017*abs_diff) * speed;
+        }
+        else if (abs_diff > 30){
+            return (1.25 - 0.0083*abs_diff) * speed;
+        }
+    }
+
+=======
+>>>>>>> 5e3e6314e0290bd87f71e4e4478cae5f36aa75a3
     void publish(double w) {
         geometry_msgs::Twist twist;
         twist.angular.z = w;
