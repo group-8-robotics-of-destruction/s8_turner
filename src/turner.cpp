@@ -60,7 +60,8 @@ private:
     void action_execute_turn_callback(const s8_turner::TurnGoalConstPtr & goal) {
         turning = true;
         start_z = latest_z;
-        desired_z = (start_z + goal->degrees) % 360;
+        desired_z = start_z + goal->degrees;
+        int starting_z = start_z;
 
         const int timeout = 10; // 10 seconds.
         const int rate_hz = 10;
@@ -72,6 +73,8 @@ private:
         ROS_INFO("Turn action started. Current z: %d, desired turn: %d, desired z: %d", start_z, goal->degrees, desired_z);
 
         while(turning && ticks <= timeout * rate_hz) {
+            ROS_INFO("Turn action started. Current z: %d, desired turn: %d, desired z: %d", start_z, goal->degrees, desired_z);
+
             rate.sleep();
             ticks++;
         }
@@ -79,13 +82,13 @@ private:
         if(ticks >= timeout * rate_hz) {
             ROS_WARN("Unable to turn. Turn action failed. Desired z: %d, actual z: %d, error: %d", desired_z, latest_z, desired_z - latest_z);
             s8_turner::TurnResult turn_action_result;
-            turn_action_result.degrees = latest_z - start_z;
+            turn_action_result.degrees = latest_z - starting_z;
             turn_action.setAborted(turn_action_result);
         } else {
             s8_turner::TurnResult turn_action_result;
-            turn_action_result.degrees = latest_z - start_z;
+            turn_action_result.degrees = latest_z - starting_z;
             turn_action.setSucceeded(turn_action_result);
-            ROS_INFO("Turn action succeeded. Desired z: %d, actual z: %d, Overshoot: %d", desired_z, latest_z, desired_z - latest_z);
+            ROS_INFO("Turn action succeeded. Desired z: %d, actual z: %d, Overshoot: %d", desired_z, latest_z, latest_z - desired_z);
         }
     }
 
@@ -99,7 +102,7 @@ private:
         int low_treshold = desired_z - treshold_range;
         int high_treshold = desired_z + treshold_range;
 
-        if(std::abs(diff) >= low_treshold && std::abs(diff) <= high_treshold) {
+        if(latest_z >= low_treshold && latest_z <= high_treshold) {
             turning = false;
             ROS_INFO("Done turning.");
             publish(0);
@@ -110,37 +113,17 @@ private:
     }
 
     void imu_callback(const s8_msgs::Orientation::ConstPtr & orientation) {
-        int z = orientation->z;
+        int z = orientation->absolute_z;
 
         if(!turning) {
-            start_z = transform_rotation(z);
+            start_z = z;
         }
 
-        latest_z = transform_rotation(z);
-
-        if(start_z > 250) {
-            if(latest_z < 100) {
-                latest_z += 360;
-            }
-        }
-
-        if(start_z < 110) {
-            if(latest_z > 250) {
-                latest_z -= 360;
-            }
-        }
+        latest_z = z;
 
         if(turning) {
             update();
         }
-    }
-
-    int transform_rotation(int z) {
-        if(z < 0) {
-            return z + 360;
-        }
-
-        return z;
     }
 
     void publish(double w) {
