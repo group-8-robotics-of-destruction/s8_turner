@@ -63,6 +63,12 @@ private:
         desired_z = start_z + goal->degrees;
         int starting_z = start_z;
 
+        if(goal->degrees > 0) {
+            direction = Direction::LEFT;
+        } else {
+            direction = Direction::RIGHT;
+        }
+
         const int timeout = 10; // 10 seconds.
         const int rate_hz = 10;
 
@@ -74,7 +80,6 @@ private:
 
         while(turning && ticks <= timeout * rate_hz) {
             ROS_INFO("Turn action started. Current z: %d, desired turn: %d, desired z: %d", start_z, goal->degrees, desired_z);
-
             rate.sleep();
             ticks++;
         }
