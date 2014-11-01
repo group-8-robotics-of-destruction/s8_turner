@@ -15,8 +15,10 @@
 #define ACTION_TURN             "/s8/turn"
 #define ACTION_STOP             "/s8_motor_controller/stop"
 
-#define PARAM_NAME_SPEED        "speed"
-#define PARAM_DEFAULT_SPEED     1.5
+#define PARAM_NAME_KP_TURN      "kp_turn"
+#define PARAM_DEFAULT_KP_TURN   1.5
+#define PARAM_NAME_DRIFT_TIME   "drift_time"
+#define PARAM_DEFAULT_DRIFT_TIME 0.5
 
 class Turner : public s8::Node {
 public:
@@ -34,12 +36,15 @@ private:
     int start_z;
     int latest_z;
     int desired_z;
+    int drift_per_sample;
+    int samples_from_start;
     bool turning;
-    double speed;
+    double kp_turn;
+    double drift_time;
     Direction direction;
 
 public:
-    Turner() : turning(false), stop_action(ACTION_STOP, true), turn_action(nh, ACTION_TURN, boost::bind(&Turner::action_execute_turn_callback, this, _1), false) {
+    Turner() : drift_per_sample(0), samples_from_start(0), turning(false), stop_action(ACTION_STOP, true), turn_action(nh, ACTION_TURN, boost::bind(&Turner::action_execute_turn_callback, this, _1), false) {
         init_params();
         print_params();
         imu_subscriber = nh.subscribe<s8_msgs::Orientation>(TOPIC_ORIENTATION, 0, &Turner::imu_callback, this);
@@ -53,10 +58,7 @@ public:
 
 private:
     void action_execute_turn_callback(const s8_turner::TurnGoalConstPtr & goal) {
-        turning = true;
         start_z = latest_z;
-        desired_z = start_z + goal->degrees;
-        int starting_z = start_z;
 
         if(goal->degrees > 0) {
             direction = Direction::LEFT;
@@ -69,17 +71,24 @@ private:
 
         ros::Rate rate(rate_hz);
 
-        int ticks = 0;
+        // Drift estimate before starting the actual turning action
+
+        drift_per_sample = drift_estimate(drift_time, rate_hz, start_z, rate);
+
+        turning = true;
+        desired_z = start_z + goal->degrees;
+        start_z = latest_z;
+        int starting_z = start_z;
 
         ROS_INFO("Turn action started. Current z: %d, desired turn: %d, desired z: %d", start_z, goal->degrees, desired_z);
 
-        while(turning && ticks <= timeout * rate_hz) {
+        while(turning && samples_from_start <= timeout * rate_hz) {
             ROS_INFO("Turn action started. Current z: %d, desired turn: %d, desired z: %d", start_z, goal->degrees, desired_z);
             rate.sleep();
-            ticks++;
+            samples_from_start++;
         }
 
-        if(ticks >= timeout * rate_hz) {
+        if(samples_from_start >= timeout * rate_hz) {
             ROS_WARN("Unable to turn. Turn action failed. Desired z: %d, actual z: %d, error: %d", desired_z, latest_z, desired_z - latest_z);
             s8_turner::TurnResult turn_action_result;
             turn_action_result.degrees = latest_z - starting_z;
@@ -113,7 +122,6 @@ private:
             return;
         }
         publish(calculate_speed(std::abs(diff)));
-	    //publish(direction * speed);
     }
 
     void stop() {
@@ -148,13 +156,18 @@ private:
     }
 
     double calculate_speed(int abs_diff){
-        // Test and eventually change 30 to an angular parameter and generalise formula
-        if (abs_diff <= 30){
-            return (0.5 + 0.017*abs_diff) * speed;
+        return (kp_turn * abs_diff) - drift_per_sample * samples_from_start;
+    }
+
+    // Check type, is int ok or should it be double?
+    int drift_estimate(double drift_time, int rate_hz, int starting_z, ros::Rate rate) {
+        int samples = 0;
+        while (turning && samples < drift_time * rate_hz) {
+            ROS_INFO("Estimating drift: N %d start_z: %d, total diff: %d", samples, starting_z, latest_z - starting_z);
+            rate.sleep();
+            samples++;
         }
-        else if (abs_diff > 30){
-            return (1.25 - 0.0083*abs_diff) * speed;
-        }
+        return (latest_z - starting_z)/samples;
     }
 
     void publish(double w) {
@@ -165,7 +178,8 @@ private:
     }
 
     void init_params() {
-        add_param(PARAM_NAME_SPEED, speed, PARAM_DEFAULT_SPEED);
+        add_param(PARAM_NAME_KP_TURN, kp_turn, PARAM_DEFAULT_KP_TURN);
+        add_param(PARAM_NAME_DRIFT_TIME, drift_time, PARAM_DEFAULT_DRIFT_TIME);
     }
 };
 
