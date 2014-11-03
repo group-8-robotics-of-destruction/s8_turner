@@ -73,8 +73,6 @@ private:
         ROS_INFO("Turn action started. Current z: %d, desired turn: %d, desired z: %d", start_z, goal->degrees, desired_z);
 
         while(turning && ticks <= timeout * rate_hz) {
-            ROS_INFO("Turn action started. Current z: %d, desired turn: %d, desired z: %d", start_z, goal->degrees, desired_z);
-
             rate.sleep();
             ticks++;
         }
