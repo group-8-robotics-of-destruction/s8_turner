@@ -63,6 +63,12 @@ private:
         desired_z = start_z + goal->degrees;
         int starting_z = start_z;
 
+        if(goal->degrees > 0) {
+            direction = Direction::LEFT;
+        } else {
+            direction = Direction::RIGHT;
+        }
+
         const int timeout = 10; // 10 seconds.
         const int rate_hz = 10;
 
@@ -106,8 +112,7 @@ private:
             publish(0);
             return;
         }
-
-        publish((int)direction * speed);
+        publish(calculate_speed(std::abs(diff)));
     }
 
     void imu_callback(const s8_msgs::Orientation::ConstPtr & orientation) {
@@ -124,7 +129,18 @@ private:
         }
     }
 
+    double calculate_speed(int abs_diff){
+        // Test and eventually change 30 to an angular parameter and generalise formula
+        if (abs_diff <= 30){
+            return (0.5 + 0.017*abs_diff) * speed;
+        }
+        else if (abs_diff > 30){
+            return (1.25 - 0.0083*abs_diff) * speed;
+        }
+    }
+
     void publish(double w) {
+        ROS_INFO("w: %lf", w);
         geometry_msgs::Twist twist;
         twist.angular.z = w;
         twist_publisher.publish(twist);
