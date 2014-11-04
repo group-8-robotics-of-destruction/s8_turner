@@ -89,6 +89,8 @@ private:
             turn_action.setSucceeded(turn_action_result);
             ROS_INFO("Turn action succeeded. Desired z: %d, actual z: %d, Overshoot: %d", desired_z, latest_z, latest_z - desired_z);
         }
+
+        turning = false;
     }
 
     void update() {
