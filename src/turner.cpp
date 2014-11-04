@@ -113,7 +113,7 @@ private:
             stop();
             return;
         }
-        publish(calculate_speed(std::abs(diff)));
+        publish(direction*calculate_speed(std::abs(diff)));
 	    //publish(direction * speed);
     }
 
