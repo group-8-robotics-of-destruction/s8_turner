@@ -42,8 +42,8 @@ public:
     Turner() : turning(false), stop_action(ACTION_STOP, true), turn_action(nh, ACTION_TURN, boost::bind(&Turner::action_execute_turn_callback, this, _1), false) {
         init_params();
         print_params();
-        imu_subscriber = nh.subscribe<s8_msgs::Orientation>(TOPIC_ORIENTATION, 0, &Turner::imu_callback, this);
-        twist_publisher = nh.advertise<geometry_msgs::Twist>(TOPIC_TWIST, 0);
+        imu_subscriber = nh.subscribe<s8_msgs::Orientation>(TOPIC_ORIENTATION, 1, &Turner::imu_callback, this);
+        twist_publisher = nh.advertise<geometry_msgs::Twist>(TOPIC_TWIST, 1);
         turn_action.start();
 
         ROS_INFO("Waiting for stop action server...");
