@@ -53,6 +53,10 @@ public:
 
 private:
     void action_execute_turn_callback(const s8_turner::TurnGoalConstPtr & goal) {
+        if(turning) {
+            ROS_FATAL("Warning: Turning callback called when already turning");
+        }
+
         turning = true;
         start_z = latest_z;
         desired_z = start_z + goal->degrees;
@@ -113,8 +117,8 @@ private:
             stop();
             return;
         }
-        publish(direction*calculate_speed(std::abs(diff)));
-	    //publish(direction * speed);
+//        publish(direction*calculate_speed(std::abs(diff)));
+	    publish(direction * speed);
     }
 
     void stop() {
