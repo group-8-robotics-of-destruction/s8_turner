@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 
 #include <s8_turner/turner_node.h>
+#include <s8_utils/math.h>
 #include <actionlib/server/simple_action_server.h>
 #include <actionlib/client/simple_action_client.h>
 
@@ -15,6 +16,7 @@
 
 using namespace s8;
 using namespace s8::turner_node;
+using namespace s8::utils::math;
 
 typedef motor_controller_node::RotationDirection RotationDirection;
 
@@ -56,11 +58,7 @@ private:
         desired_z = start_z + goal->degrees;
         int starting_z = start_z;
 
-        if(goal->degrees > 0) {
-            direction = RotationDirection::LEFT;
-        } else {
-            direction = RotationDirection::RIGHT;
-        }
+        direction = RotationDirection(sign(goal->degrees));
 
         const int timeout = 10; // 10 seconds.
         const int rate_hz = 10;

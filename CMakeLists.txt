@@ -3,7 +3,7 @@ set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 cmake_minimum_required(VERSION 2.8.3)
 project(s8_turner)
 
-find_package(catkin REQUIRED COMPONENTS roscpp s8_msgs geometry_msgs s8_common_node actionlib actionlib_msgs s8_motor_controller)
+find_package(catkin REQUIRED COMPONENTS roscpp s8_msgs geometry_msgs s8_common_node s8_utils actionlib actionlib_msgs s8_motor_controller)
 find_package(Boost REQUIRED COMPONENTS system)
 
 add_action_files(
@@ -17,7 +17,7 @@ generate_messages(
 
 catkin_package(
   DEPENDS
-  CATKIN_DEPENDS roscpp s8_msgs geometry_msgs s8_common_node actionlib_msgs actionlib s8_motor_controller
+  CATKIN_DEPENDS roscpp s8_msgs geometry_msgs s8_common_node s8_utils actionlib_msgs actionlib s8_motor_controller
   INCLUDE_DIRS include
 )
 
