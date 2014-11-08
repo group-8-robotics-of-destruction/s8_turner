@@ -1,4 +1,6 @@
 #include <ros/ros.h>
+
+#include <s8_turner/turner_node.h>
 #include <actionlib/server/simple_action_server.h>
 #include <actionlib/client/simple_action_client.h>
 
@@ -7,25 +9,14 @@
 #include <s8_common_node/Node.h>
 #include <s8_turner/TurnAction.h>
 #include <s8_motor_controller/StopAction.h>
-#include <s8_motor_controller/motor_controller_node.h>
-
-using namespace s8;
-
-typedef motor_controller_node::RotationDirection RotationDirection;
-
-
-#define NODE_NAME               "s8_turner_node"
-
-#define TOPIC_ORIENTATION       "/s8/orientation"
-#define ACTION_TURN             "/s8/turn"
-
-#define TOPIC_TWIST             motor_controller_node::TOPIC_TWIST
-#define ACTION_STOP             motor_controller_node::ACTION_STOP
 
 #define PARAM_NAME_SPEED        "speed"
 #define PARAM_DEFAULT_SPEED     1.5
 
+using namespace s8;
+using namespace s8::turner_node;
 
+typedef motor_controller_node::RotationDirection RotationDirection;
 
 class Turner : public Node {
 private:

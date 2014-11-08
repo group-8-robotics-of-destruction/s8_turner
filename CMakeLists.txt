@@ -18,10 +18,11 @@ generate_messages(
 catkin_package(
   DEPENDS
   CATKIN_DEPENDS roscpp s8_msgs geometry_msgs s8_common_node actionlib_msgs actionlib s8_motor_controller
+  INCLUDE_DIRS include
 )
 
 include_directories(
-  # include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
