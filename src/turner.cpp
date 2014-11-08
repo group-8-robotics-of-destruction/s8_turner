@@ -7,24 +7,27 @@
 #include <s8_common_node/Node.h>
 #include <s8_turner/TurnAction.h>
 #include <s8_motor_controller/StopAction.h>
+#include <s8_motor_controller/motor_controller_node.h>
+
+using namespace s8;
+
+typedef motor_controller_node::RotationDirection RotationDirection;
+
 
 #define NODE_NAME               "s8_turner_node"
 
 #define TOPIC_ORIENTATION       "/s8/orientation"
-#define TOPIC_TWIST             "/s8/twist"
 #define ACTION_TURN             "/s8/turn"
-#define ACTION_STOP             "/s8_motor_controller/stop"
+
+#define TOPIC_TWIST             motor_controller_node::TOPIC_TWIST
+#define ACTION_STOP             motor_controller_node::ACTION_STOP
 
 #define PARAM_NAME_SPEED        "speed"
 #define PARAM_DEFAULT_SPEED     1.5
 
-class Turner : public s8::Node {
-public:
-    enum Direction {
-        LEFT = 1,
-        RIGHT = -1
-    };
 
+
+class Turner : public Node {
 private:
     ros::Subscriber imu_subscriber;
     ros::Publisher twist_publisher;
@@ -36,7 +39,7 @@ private:
     int desired_z;
     bool turning;
     double speed;
-    Direction direction;
+    RotationDirection direction;
 
 public:
     Turner() : turning(false), stop_action(ACTION_STOP, true), turn_action(nh, ACTION_TURN, boost::bind(&Turner::action_execute_turn_callback, this, _1), false) {
@@ -63,9 +66,9 @@ private:
         int starting_z = start_z;
 
         if(goal->degrees > 0) {
-            direction = Direction::LEFT;
+            direction = RotationDirection::LEFT;
         } else {
-            direction = Direction::RIGHT;
+            direction = RotationDirection::RIGHT;
         }
 
         const int timeout = 10; // 10 seconds.
