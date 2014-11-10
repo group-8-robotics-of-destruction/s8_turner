@@ -2,29 +2,20 @@
 #include <actionlib/server/simple_action_server.h>
 #include <actionlib/client/simple_action_client.h>
 
+#include <s8_turner/turner_node.h>
+
 #include <s8_msgs/Orientation.h>
 #include <geometry_msgs/Twist.h>
 #include <s8_common_node/Node.h>
 #include <s8_turner/TurnAction.h>
 #include <s8_motor_controller/StopAction.h>
 
-#define NODE_NAME               "s8_turner_node"
-
-#define TOPIC_ORIENTATION       "/s8/orientation"
-#define TOPIC_TWIST             "/s8/twist"
-#define ACTION_TURN             "/s8/turn"
-#define ACTION_STOP             "/s8_motor_controller/stop"
-
 #define PARAM_NAME_SPEED        "speed"
 #define PARAM_DEFAULT_SPEED     1.5
 
-class Turner : public s8::Node {
-public:
-    enum Direction {
-        LEFT = 1,
-        RIGHT = -1
-    };
+using namespace s8::turner_node;
 
+class Turner : public s8::Node {
 private:
     ros::Subscriber imu_subscriber;
     ros::Publisher twist_publisher;
