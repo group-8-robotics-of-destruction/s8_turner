@@ -13,6 +13,8 @@
 #define PARAM_NAME_SPEED        "speed"
 #define PARAM_DEFAULT_SPEED     0.75
 
+#define HZ                      10
+
 using namespace s8::turner_node;
 
 class Turner : public s8::Node {
@@ -40,6 +42,29 @@ public:
         ROS_INFO("Waiting for stop action server...");
         stop_action.waitForServer();
         ROS_INFO("Connected to stop action server!");
+    }
+
+    void update() {
+        if(!turning) {
+            return;
+        }
+
+        int diff = (start_z - latest_z);
+
+        ROS_INFO("start_z: %d, latest_z: %d, diff: %d, desired_z: %d", start_z, latest_z, diff, desired_z);
+
+        const int treshold_range = 5;
+
+        int low_treshold = desired_z - treshold_range;
+        int high_treshold = desired_z + treshold_range;
+
+        if(latest_z >= low_treshold && latest_z <= high_treshold) {
+            turning = false;
+            ROS_INFO("Done turning.");
+            return;
+        }
+//        publish(direction*calculate_speed(std::abs(diff)));
+        publish(direction * speed);
     }
 
 private:
@@ -73,6 +98,8 @@ private:
             ticks++;
         }
 
+        stop();
+
         if(ticks >= timeout * rate_hz) {
             ROS_WARN("Unable to turn. Turn action failed. Desired z: %d, actual z: %d, error: %d", desired_z, latest_z, desired_z - latest_z);
             s8_turner::TurnResult turn_action_result;
@@ -86,30 +113,6 @@ private:
         }
 
         turning = false;
-    }
-
-    void update() {
-        if(!turning) {
-            return;
-        }
-
-        int diff = (start_z - latest_z);
-
-        ROS_INFO("start_z: %d, latest_z: %d, diff: %d, desired_z: %d", start_z, latest_z, diff, desired_z);
-
-        const int treshold_range = 5;
-
-        int low_treshold = desired_z - treshold_range;
-        int high_treshold = desired_z + treshold_range;
-
-        if(latest_z >= low_treshold && latest_z <= high_treshold) {
-            turning = false;
-            ROS_INFO("Done turning.");
-            stop();
-            return;
-        }
-//        publish(direction*calculate_speed(std::abs(diff)));
-	    publish(direction * speed);
     }
 
     void stop() {
@@ -137,10 +140,6 @@ private:
         }
 
         latest_z = z;
-
-        if(turning) {
-            update();
-        }
     }
 
     double calculate_speed(int abs_diff){
@@ -168,6 +167,11 @@ private:
 int main(int argc, char **argv) {
     ros::init(argc, argv, NODE_NAME);
     Turner turner;
-    ros::spin();
+    ros::Rate loop_rate(HZ);
+    while(ros::ok()) {
+        ros::spinOnce();
+        turner.update();
+        loop_rate.sleep();
+    }
     return 0;
 }
