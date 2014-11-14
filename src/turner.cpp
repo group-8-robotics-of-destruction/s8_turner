@@ -13,7 +13,7 @@
 #define PARAM_NAME_SPEED        "speed"
 #define PARAM_DEFAULT_SPEED     0.75
 
-#define HZ                      10
+#define HZ                      50
 
 using namespace s8::turner_node;
 
