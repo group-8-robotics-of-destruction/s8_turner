@@ -11,7 +11,7 @@
 #include <s8_motor_controller/StopAction.h>
 
 #define PARAM_NAME_SPEED        "speed"
-#define PARAM_DEFAULT_SPEED     0.75
+#define PARAM_DEFAULT_SPEED     1.5
 
 #define HZ                      10
 
@@ -53,7 +53,7 @@ public:
 
         ROS_INFO("start_z: %d, latest_z: %d, diff: %d, desired_z: %d", start_z, latest_z, diff, desired_z);
 
-        const int treshold_range = 5;
+        const int treshold_range = 10;
 
         int low_treshold = desired_z - treshold_range;
         int high_treshold = desired_z + treshold_range;
