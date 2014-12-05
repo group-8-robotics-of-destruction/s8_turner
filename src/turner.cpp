@@ -1,10 +1,11 @@
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
 #include <actionlib/client/simple_action_client.h>
+#include <geometry_msgs/Pose2D.h>
+#include <s8_utils/math.h>
 
 #include <s8_turner/turner_node.h>
 
-#include <s8_msgs/Orientation.h>
 #include <geometry_msgs/Twist.h>
 #include <s8_common_node/Node.h>
 #include <s8_turner/TurnAction.h>
@@ -35,7 +36,7 @@ public:
     Turner() : turning(false), stop_action(ACTION_STOP, true), turn_action(nh, ACTION_TURN, boost::bind(&Turner::action_execute_turn_callback, this, _1), false) {
         init_params();
         print_params();
-        imu_subscriber = nh.subscribe<s8_msgs::Orientation>(TOPIC_ORIENTATION, 1, &Turner::imu_callback, this);
+        imu_subscriber = nh.subscribe<geometry_msgs::Pose2D>(TOPIC_ORIENTATION, 1, &Turner::imu_callback, this);
         twist_publisher = nh.advertise<geometry_msgs::Twist>(TOPIC_TWIST, 1);
         turn_action.start();
 
@@ -53,7 +54,7 @@ public:
 
         ROS_INFO("start_z: %d, latest_z: %d, diff: %d, desired_z: %d", start_z, latest_z, diff, desired_z);
 
-        const int treshold_range = 25;
+        const int treshold_range = 15;
 
         int low_treshold = desired_z - treshold_range;
         int high_treshold = desired_z + treshold_range;
@@ -132,8 +133,11 @@ private:
         }
     }
 
-    void imu_callback(const s8_msgs::Orientation::ConstPtr & orientation) {
-        int z = orientation->absolute_z;
+    void imu_callback(const geometry_msgs::Pose2D::ConstPtr & pose) {
+        int z = s8::utils::math::radians_to_degrees(pose->theta);
+
+
+        ROS_INFO("z: %d", z);
 
         if(!turning) {
             start_z = z;

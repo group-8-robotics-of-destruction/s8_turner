@@ -3,14 +3,14 @@
 
 #include <string>
 
-#include <s8_orientation/orientation_node.h>
+#include <s8_pose/pose_node.h>
 #include <s8_motor_controller/motor_controller_node.h>
 
 namespace s8 {
     namespace turner_node {
         const std::string NODE_NAME =               "s8_turner_node";
 
-        const std::string TOPIC_ORIENTATION =       s8::orientation_node::TOPIC_ORIENTATION;
+        const std::string TOPIC_ORIENTATION =       s8::pose_node::TOPIC_POSE_SIMPLE;
         const std::string TOPIC_TWIST =             s8::motor_controller_node::TOPIC_TWIST;
         const std::string ACTION_STOP =             s8::motor_controller_node::ACTION_STOP;
         const std::string ACTION_TURN =             "/s8/turn";
